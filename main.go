@@ -30,7 +30,7 @@ func main() {
 	isEnd := false
 
 	for !isEnd {
-		isEnd, err = parser.Parse()
+		isEnd, err = parser.Parse(models.Comic{})
 
 		if err != nil {
 			err = fmt.Errorf("on parse: %w", err)

@@ -2,15 +2,14 @@ package models
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"xkcd/internal/db"
 )
 
 type ComicRepo interface {
-	Read(id int) error
-	Save() error
-	Delete() error
+	Read(id int) (comic Comic, err error)
+	Save(comic *Comic) (err error)
+	Delete(comic Comic) error
 	ReadAll(limit int, isDesc bool) ([]Comic, error)
 	ReadLast() (Comic, error)
 }
@@ -30,24 +29,25 @@ type Comic struct {
 	Num        int    `json:"num"`
 }
 
-func (c *Comic) Read(id int) error {
+func (c Comic) Read(id int) (comic Comic, err error) {
 	conn, err := db.GetInstance()
 	if err != nil {
 		err = fmt.Errorf("on GetInstance: %v", err)
-		return err
+		return comic, err
 	}
 
 	row, err := conn.Query(`select * from comic where id = ?`, id)
 
-	if errors.Is(err, sql.ErrNoRows) {
-		return err
+	if err != nil {
+		err = fmt.Errorf("on query: %w", err)
+		return comic, err
 	}
 
-	if err = scanRowToComic(row, c); err != nil {
-		return err
+	if err = scanRowToComic(row, &c); err != nil {
+		return comic, err
 	}
 
-	return nil
+	return comic, nil
 }
 
 func scanRowToComic(row *sql.Rows, c *Comic) error {
@@ -72,7 +72,7 @@ func scanRowToComic(row *sql.Rows, c *Comic) error {
 	return nil
 }
 
-func (c *Comic) Save() error {
+func (Comic) Save(c *Comic) error {
 	conn, err := db.GetInstance()
 	if err != nil {
 		err = fmt.Errorf("on GetInstance: %v", err)
@@ -123,7 +123,7 @@ func (c *Comic) Save() error {
 	return nil
 }
 
-func (c *Comic) Delete() error {
+func (Comic) Delete(c Comic) error {
 	conn, err := db.GetInstance()
 	if err != nil {
 		err = fmt.Errorf("on GetInstance: %v", err)
@@ -139,7 +139,7 @@ func (c *Comic) Delete() error {
 	return nil
 }
 
-func (c Comic) ReadAll(limit int, isDesc bool) ([]Comic, error) {
+func (Comic) ReadAll(limit int, isDesc bool) ([]Comic, error) {
 	comics := make([]Comic, 0)
 	conn, err := db.GetInstance()
 	if err != nil {
@@ -178,7 +178,7 @@ func (c Comic) ReadAll(limit int, isDesc bool) ([]Comic, error) {
 
 func (c Comic) ReadLast() (comic Comic, err error) {
 	var comics []Comic
-	comics, err = (Comic{}).ReadAll(1, true)
+	comics, err = (c).ReadAll(1, true)
 
 	if err != nil {
 		err = fmt.Errorf("on ReadAll: %w", err)

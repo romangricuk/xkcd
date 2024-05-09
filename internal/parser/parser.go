@@ -25,7 +25,7 @@ type xkcdResponse struct {
 	Num        int    `json:"num"`
 }
 
-func Parse() (isEnd bool, err error) {
+func Parse(repo models.ComicRepo) (isEnd bool, err error) {
 	comic, err := (models.Comic{}).ReadLast()
 	if !errors.Is(err, sql.ErrNoRows) && err != nil {
 		err = fmt.Errorf("on get last: %w", err)
@@ -41,7 +41,7 @@ func Parse() (isEnd bool, err error) {
 			return true, nil
 		}
 
-		err = saveComic(res)
+		err = saveComic(repo, res)
 		if err != nil {
 			err = fmt.Errorf("on saving comic: %w", err)
 			return false, err
@@ -52,7 +52,7 @@ func Parse() (isEnd bool, err error) {
 	return false, nil
 }
 
-func saveComic(r xkcdResponse) (err error) {
+func saveComic(repo models.ComicRepo, r xkcdResponse) (err error) {
 	comic := models.Comic{
 		Link:       r.Link,
 		News:       r.News,
@@ -67,7 +67,7 @@ func saveComic(r xkcdResponse) (err error) {
 		Num:        r.Num,
 	}
 
-	err = comic.Save()
+	err = repo.Save(&comic)
 	if err != nil {
 		err = fmt.Errorf("on saving comic to db: %w", err)
 		return err
